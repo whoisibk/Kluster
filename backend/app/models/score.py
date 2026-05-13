@@ -1,4 +1,4 @@
-from backend.app.database import Base
+﻿from app.database import Base
 
 from datetime import datetime
 

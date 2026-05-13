@@ -1,13 +1,12 @@
 ﻿from datetime import datetime
 
 from app.database import Base
-
-from sqlalchemy import Column, String, ForeignKey, DateTime, text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Boolean, Text, ForeignKey, DateTime, ARRAY, text
 
 
-class Member(Base):
-    __tablename__ = "members"
+class JobSeeker(Base):
+    __tablename__ = "job_seekers"
 
     id = Column(UUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
     auth_user_id = Column(UUID(as_uuid=True), nullable=True, index=True)
@@ -15,14 +14,13 @@ class Member(Base):
     last_name = Column(String, nullable=False)
     phone = Column(String, nullable=False)
 
-    cluster_id = Column(UUID(as_uuid=True), ForeignKey("clusters.id", ondelete="CASCADE"), index=True, nullable=False)
-    role_in_cluster = Column(String, nullable=True, default="member")
+    skills = Column(ARRAY(String), nullable=False)
+    language = Column(String, nullable=False)
+    location = Column(String, nullable=False)
+    bio = Column(Text)
 
-    # account id to be created after member creation
-    squad_virtual_account_id = Column(String, nullable=True)
-    job_seeker_id = Column(UUID(as_uuid=True), ForeignKey("job_seekers.id", ondelete="SET NULL"), nullable=True)
+    is_matched = Column(Boolean, default=False)
+    matched_cluster_id = Column(UUID(as_uuid=True), ForeignKey("clusters.id", ondelete="SET NULL"), index=True, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-

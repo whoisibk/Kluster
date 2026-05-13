@@ -1,7 +1,7 @@
-import uuid
+﻿import uuid
 from datetime import datetime
 
-from backend.app.database import Base
+from app.database import Base
 
 from sqlalchemy import ARRAY, Column, Integer, String, Float, ForeignKey, Uuid, DateTime, text
 from sqlalchemy.dialects.postgresql import UUID
@@ -13,10 +13,11 @@ class Cluster(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
     name = Column(String, nullable=False, index=True)
     type = Column(String, nullable=False) # cooperatives, market associations, etc.
-    leader_id = Column(UUID(as_uuid=True), nullable=False)
+    leader_member_id = Column(UUID(as_uuid=True), ForeignKey("members.id", ondelete="SET NULL"), nullable=True)
     location = Column(String, nullable=False)
 
     description = Column(String, nullable=True)
     languages = Column(ARRAY(String), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+

@@ -1,4 +1,4 @@
-from backend.app.database import Base
+﻿from app.database import Base
 
 from datetime import datetime
 
@@ -11,12 +11,13 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
-    cluster_id = Column(UUID(as_uuid=True), ForeignKey("clusters.id"), nullable=False)
+    member_id = Column(UUID(as_uuid=True), ForeignKey("members.id", ondelete="SET NULL"), nullable=True, index=True)
+    cluster_id = Column(UUID(as_uuid=True), ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
     amount = Column(Float, nullable=False)
-    transaction_type = Column(String, nullable=False)  # e.g., "credit" or "debit"
-    
-    sender_ref = Column(String, nullable=True)  # Optional reference for sender
-    squad_transaction_ref = Column(String, nullable=True)  # Reference from Squad API response
+    transaction_type = Column(String, nullable=False)  # "credit" or "debit"
+
+    sender_ref = Column(String, nullable=True)
+    squad_transaction_ref = Column(String, nullable=True)
     description = Column(String, nullable=True)
 
     timestamp = Column(DateTime, default=datetime.utcnow)
