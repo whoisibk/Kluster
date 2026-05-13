@@ -1,0 +1,24 @@
+.claude
+.dist
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.env
+!*.env.example
+!*.env.local.example
+
+# Node
+node_modules/
+.next/
+out/
+
+# Misc
+.DS_Store
+*.log
+.idea/
+.vscode/
