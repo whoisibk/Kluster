@@ -6,6 +6,8 @@ import MemberSignup from './pages/MemberSignup'
 import MemberProfile from './pages/MemberProfile'
 import ClusterDashboard from './pages/ClusterDashboard'
 import DemandSignals from './pages/DemandSignals'
+import CreateJobProfile from './pages/CreateJobProfile'
+import JobSeekerDashboard from './pages/JobSeekerDashboard'
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
       <Route path="/member/:id" element={<MemberProfile />} />
       <Route path="/dashboard/cluster" element={<ClusterDashboard />} />
       <Route path="/demand-signals" element={<DemandSignals />} />
+      <Route path="/create-profile" element={<CreateJobProfile />} />
+      <Route path="/dashboard/job-seeker" element={<JobSeekerDashboard />} />
     </Routes>
   )
 }
