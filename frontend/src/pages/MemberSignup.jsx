@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
+import klusterAPI from '../../services/api'
 
 // Simple SVG Icons
 const PhoneIcon = () => (
@@ -82,27 +83,38 @@ const MemberSignup = () => {
     }
   }
 
-  const handleFindAccount = async () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
-      setError('Please enter a valid phone number')
-      return
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  if (!agreeTerms) return
+  if (!validatePassword()) return
+  
+  setIsSubmitting(true)
+
+  try {
+    const response = await klusterAPI.registerCluster({
+      fullName: formData.fullName,
+      phone: formData.phone,
+      email: formData.email,
+      password: formData.password,
+      groupName: formData.groupName,
+      groupType: formData.groupType,
+      memberCount: formData.memberCount,
+      location: formData.location,
+      verificationId: formData.verificationId,
+      verificationType: formData.verificationType
+    })
+    
+    if (response.success) {
+      localStorage.setItem('kluster_user', JSON.stringify(response.user))
+      localStorage.setItem('kluster_token', response.token)
+      navigate('/dashboard/cluster', { state: { newCluster: true } })
     }
-
-    setIsSearching(true)
-    setError('')
-
-    // Simulate API call
-    setTimeout(() => {
-      const profile = mockProfiles[phoneNumber]
-      if (profile) {
-        setFoundProfile(profile)
-        setStep(2)
-      } else {
-        setError('No account found with this phone number. Ask your cluster leader to add you first.')
-      }
-      setIsSearching(false)
-    }, 1000)
+  } catch (error) {
+    alert('Registration failed. Please try again.')
+  } finally {
+    setIsSubmitting(false)
   }
+}
 
   const validatePassword = () => {
     if (formData.password.length < 6) {
@@ -116,41 +128,49 @@ const MemberSignup = () => {
     return true
   }
 
-  const handleActivateAccount = async () => {
-    if (!validatePassword()) {
-      return
+  const handleFindAccount = async () => {
+  setIsSearching(true)
+  setError('')
+
+  try {
+    const profile = await klusterAPI.lookupMemberByPhone(phoneNumber)
+    
+    if (profile) {
+      setFoundProfile(profile)
+      setStep(2)
+    } else {
+      setError('No account found. Ask your cluster leader to add you first.')
     }
-
-    setIsActivating(true)
-
-    // Simulate API call to activate account
-    setTimeout(() => {
-      const userCredentials = {
-          id: `MBR-${Math.floor(Math.random() * 90000) + 10000}`,
-  name: foundProfile.name,
-  email: formData.email || `${foundProfile.name.toLowerCase().replace(/\s/g, '.')}@kluster.com`,
-        phone: foundProfile.phone,
-        password: formData.password,
-        role: 'member',
-        clusterId: foundProfile.clusterId,
-        clusterName: foundProfile.cluster,
-        location: foundProfile.location,
-        joinDate: foundProfile.joinDate,
-        isAuthenticated: true,
-        accountActivated: true
-      }
-
-      localStorage.setItem('kluster_user', JSON.stringify(userCredentials))
-      setIsActivating(false)
-      navigate(`/member/${userCredentials.id}`, {
-        state: {
-          newMember: userCredentials,
-          isNewMember: true
-        }
-      })
-    }, 1500)
+  } catch (error) {
+    setError('Unable to find account. Please try again.')
+  } finally {
+    setIsSearching(false)
   }
+}
+// Activate account
+const handleActivateAccount = async () => {
+  if (!validatePassword()) return
 
+  setIsActivating(true)
+
+  try {
+    const response = await klusterAPI.memberActivate({
+      phone: foundProfile.phone,
+      email: formData.email,
+      password: formData.password
+    })
+    
+    if (response.user) {
+      localStorage.setItem('kluster_user', JSON.stringify(response.user))
+      localStorage.setItem('kluster_token', response.token)
+      navigate(`/member/${response.user.id}`)
+    }
+  } catch (error) {
+    setActivationError('Activation failed. Please try again.')
+  } finally {
+    setIsActivating(false)
+  }
+}
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-teal-50/30">
       <Navbar />

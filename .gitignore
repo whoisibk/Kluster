@@ -1,6 +1,33 @@
+<<<<<<< HEAD
 .env
 __pycache__/
 *.pyc
 *.pyo
 
 
+=======
+.claude
+.dist
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.env
+!*.env.example
+!*.env.local.example
+
+# Node
+node_modules/
+.next/
+out/
+
+# Misc
+.DS_Store
+*.log
+.idea/
+.vscode/
+>>>>>>> c36abb79a3d9ed1e738a7fe88668f710bfb5faf7

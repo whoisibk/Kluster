@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-
+import klusterAPI from '../../services/api'
 const Login = () => {
   const navigate = useNavigate()
   const [loginMethod, setLoginMethod] = useState('email')
@@ -62,52 +62,33 @@ const Login = () => {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
 
-    // Simulate API call
-    setTimeout(() => {
-      // First, check registered users from localStorage (activated accounts)
-      const registeredUsers = getRegisteredUsers()
-      let user = registeredUsers.find(u => u.email === formData.identifier.toLowerCase())
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  setIsLoading(true)
+  setError('')
+
+  try {
+    const response = await klusterAPI.login(formData.identifier, formData.password)
+    
+    if (response.user) {
+      localStorage.setItem('kluster_user', JSON.stringify(response.user))
+      localStorage.setItem('kluster_token', response.token)
       
-      // If not found in registered users, check mock users
-      if (!user) {
-        const mockUsers = getMockUsers()
-        const mockUser = mockUsers[formData.identifier.toLowerCase()]
-        if (mockUser && mockUser.password === formData.password) {
-          user = mockUser
-        }
-      } else if (user.password !== formData.password) {
-        user = null
-      }
-      
-      if (user) {
-        // Store/update user session
-        localStorage.setItem('kluster_user', JSON.stringify({
-          ...user,
-          isAuthenticated: true,
-          lastLogin: new Date().toISOString()
-        }))
-        
-        // Redirect based on role
-        if (user.role === 'cluster_leader') {
-          navigate('/dashboard/cluster')
-        } else if (user.role === 'job_seeker') {
-          navigate('/dashboard')
-        } else if (user.role === 'member') {
-          navigate(`/member/${user.id}`)
-        } else {
-          navigate(`/member/${user.id}`)
-        }
+      if (response.user.role === 'cluster_leader') {
+        navigate('/dashboard/cluster')
+      } else if (response.user.role === 'job_seeker') {
+        navigate('/dashboard')
       } else {
-        setError('Invalid email or password. Try: tunde@kluster.com / 123456')
+        navigate(`/member/${response.user.id}`)
       }
-      setIsLoading(false)
-    }, 1000)
+    }
+  } catch (error) {
+    setError('Invalid email or password')
+  } finally {
+    setIsLoading(false)
   }
+}
 
   const handleSendVerificationCode = async () => {
     if (!formData.identifier) {

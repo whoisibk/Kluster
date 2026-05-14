@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
+import klusterAPI from '../services/api'
 
 // Simple SVG Icon Components
 const UserIcon = () => (
@@ -223,15 +224,36 @@ const CreateJobProfile = () => {
     setCurrentStep(prev => prev - 1)
   }
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true)
-    setTimeout(() => {
-      console.log('Profile created:', formData)
-      setIsSubmitting(false)
-      navigate('/dashboard/job-seeker')
-    }, 1500)
-  }
 
+const handleSubmit = async () => {
+  setIsSubmitting(true)
+  
+  try {
+    const response = await klusterAPI.createWorkerProfile({
+      fullName: formData.fullName,
+      phoneNumber: formData.phoneNumber,
+      location: formData.location,
+      workTypes: formData.workTypes,
+      skillLevel: formData.skillLevel,
+      experience: formData.experience,
+      workedWithCustomers: formData.workedWithCustomers,
+      ownsTools: formData.ownsTools,
+      hasMentor: formData.hasMentor,
+      workPreference: formData.workPreference,
+      workDescription: formData.workDescription
+    })
+    
+    if (response.success) {
+      localStorage.setItem('kluster_user', JSON.stringify(response.user))
+      localStorage.setItem('kluster_token', response.token)
+      navigate('/dashboard', { state: { newProfile: true } })
+    }
+  } catch (error) {
+    alert('Failed to create profile. Please try again.')
+  } finally {
+    setIsSubmitting(false)
+  }
+}
   const canProceed = () => {
     switch(currentStep) {
       case 1:

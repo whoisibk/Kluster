@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
+import klusterAPI from '../services/api'
+
 
 // Simple SVG Icons
 const UserIcon = () => (
@@ -93,7 +95,9 @@ const JobSeekerDashboard = () => {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
 
-  useEffect(() => {
+
+useEffect(() => {
+  const loadDashboard = async () => {
     const storedUser = localStorage.getItem('kluster_user')
     if (!storedUser) {
       navigate('/login')
@@ -101,36 +105,23 @@ const JobSeekerDashboard = () => {
     }
     
     const userData = JSON.parse(storedUser)
+    if (userData.role !== 'job_seeker') {
+      navigate('/login')
+      return
+    }
+    
     setUser(userData)
-    setLoading(false)
-  }, [navigate])
-
-  // Mock job seeker data
-  const profileData = {
-    name: 'Amina',
-    fullName: 'Amina Bello',
-    trade: 'Tailor',
-    location: 'Yaba, Lagos',
-    profileStrength: 85,
-    skillLevel: 'Experienced',
-    availability: 'Available',
-    visibilityScore: 78,
-    visibilityIncrease: '+12% this week',
-    profileViews: 24,
-    recommendationPools: 5,
-    skills: ['Custom Dresses', 'Wedding Gowns', 'Alterations', 'Beading'],
-    portfolio: [
-      { id: 1, image: null, title: 'Wedding Gown' },
-      { id: 2, image: null, title: 'Traditional Outfit' },
-      { id: 3, image: null, title: 'Beaded Dress' }
-    ],
-    recentActivity: [
-      { id: 1, action: 'Profile viewed by 3 new clusters', time: '2 hours ago', type: 'view' },
-      { id: 2, action: 'Expressed interest in tailoring opportunity', time: '1 day ago', type: 'interest' },
-      { id: 3, action: 'Portfolio photo added', time: '3 days ago', type: 'upload' }
-    ]
+    
+    try {
+      const dashboard = await klusterAPI.getWorkerDashboard(userData.id)
+      setProfileData(dashboard)
+    } catch (error) {
+      console.error('Failed to load dashboard:', error)
+    }
   }
-
+  
+  loadDashboard()
+}, [navigate])
   // Opportunity signals (no cluster names exposed)
   const opportunitySignals = [
     {

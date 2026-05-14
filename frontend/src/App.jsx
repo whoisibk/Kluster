@@ -8,6 +8,7 @@ import ClusterDashboard from './pages/ClusterDashboard'
 import DemandSignals from './pages/DemandSignals'
 import CreateJobProfile from './pages/CreateJobProfile'
 import JobSeekerDashboard from './pages/JobSeekerDashboard'
+import JobSeekerProfile from './pages/JobSeekerProfile'
 
 function App() {
   return (
@@ -21,6 +22,8 @@ function App() {
       <Route path="/demand-signals" element={<DemandSignals />} />
       <Route path="/create-profile" element={<CreateJobProfile />} />
       <Route path="/dashboard/job-seeker" element={<JobSeekerDashboard />} />
+      <Route path="/job-seeker/:id" element={<JobSeekerProfile />} />
+
     </Routes>
   )
 }

@@ -1,71 +1,39 @@
 import { useParams, useLocation, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
+import klusterAPI from '../services/api'
 
 const MemberProfile = () => {
   const { id } = useParams()
   const location = useLocation()
   const [member, setMember] = useState(null)
   
-  useEffect(() => {
-    // Check if we have new member data from navigation state
+
+useEffect(() => {
+  const loadMember = async () => {
+    // Check for new member from activation
     if (location.state?.newMember) {
       setMember(location.state.newMember)
-    } else {
-      // Mock existing member data (would come from API in production)
-      const existingMember = {
-        id: id || 'TRO-3892-ALPHA',
-        name: 'Tunde Adebayo',
-        tier: 'Tier 1 Vendor',
-        sector: 'Phone Accessories',
-        location: 'Computer Village, Ikeja',
-        joinDate: '2023.04.12',
-        kycStatus: 'Verified',
-        activityScore: 94,
-        scoreChange: 2.4,
-        clusterRank: 'Top 5%',
-        rankDescription: 'High centrality node. Frequent liquidity provider within the regional network.',
-        eligibleAmount: 450000,
-        confidenceScore: 88,
-        creditBrief: 'Consistent weekly inflows and rising repeat customer activity suggest stable business growth and strong repayment reliability. Recommendation: Prime candidate for elevated credit facilities to stimulate further cluster growth.',
-        groupName: 'Oba Akran Phone Repair Association',
-        memberCount: 87,
-        phone: '08031234567',
-        email: 'tunde.adebayo@example.com',
-        recentActivity: [
-          {
-            id: 1,
-            title: 'Bulk screen purchase - Computer Village',
-            amount: '₦142,000',
-            vendor: 'Eeeka Electronics',
-            time: 'T-Minus 2 Hours',
-            type: 'purchase'
-          },
-          {
-            id: 2,
-            title: 'Initiated bulk transfer',
-            description: 'Routing through Alpha Cluster',
-            time: 'Yesterday, 14:38',
-            type: 'transfer'
-          },
-          {
-            id: 3,
-            title: 'Credit facility re-evaluation',
-            description: 'List increased by 15%',
-            time: '2023.10.24',
-            type: 'evaluation'
-          },
-          {
-            id: 4,
-            title: 'KYC Documentation Updated',
-            time: '2023.10.20',
-            type: 'kyc'
-          }
-        ]
-      }
-      setMember(existingMember)
+      return
     }
-  }, [id, location.state])
+    
+    try {
+      const memberData = await klusterAPI.getMemberProfile(id)
+      const transactions = await klusterAPI.getTransactions(id)
+      
+      setMember({
+        ...memberData,
+        recentActivity: transactions.slice(0, 5)
+      })
+    } catch (error) {
+      console.error('Failed to load member:', error)
+      // Fallback to mock data
+      setMember(getMockMember(id))
+    }
+  }
+  
+  loadMember()
+}, [id, location.state])
 
   // Safe fallback for recentActivity
   const safeRecentActivity = member?.recentActivity || []

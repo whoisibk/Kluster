@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { Link } from 'react-router-dom'
+import klusterAPI from '../services/api'
 
 const LeaderSignup = () => {
   const navigate = useNavigate()
@@ -63,98 +64,41 @@ const LeaderSignup = () => {
     return true
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    if (!agreeTerms) {
-      alert('Please agree to the terms and conditions')
-      return
-    }
-    
-    if (!validatePassword()) {
-      return
-    }
-    
-    setIsSubmitting(true)
-    
-    // Simulate API call to create cluster and member
-    setTimeout(() => {
-      const memberId = generateMemberId()
-      
-      // Create member profile data
-      const memberProfile = {
-        id: memberId,
-        name: formData.fullName,
-        tier: 'Cluster Leader',
-        sector: formData.groupType,
-        location: formData.location,
-        joinDate: new Date().toISOString().split('T')[0].replace(/-/g, '.'),
-        kycStatus: 'Verified',
-        activityScore: 85,
-        scoreChange: 0,
-        clusterRank: 'New Cluster',
-        rankDescription: 'Founding member and leader of new cluster. Establishing economic activity patterns.',
-        eligibleAmount: 0,
-        confidenceScore: 0,
-        creditBrief: 'New cluster leader. As transactions flow through the cluster, credit assessment will become available. Start inviting members to build economic history.',
-        groupName: formData.groupName,
-        memberCount: formData.memberCount,
-        phone: formData.phone,
-        email: formData.email,
-        recentActivity: [
-          {
-            id: 1,
-            title: `Created cluster: ${formData.groupName}`,
-            description: `${formData.groupType} registered on Kluster`,
-            time: 'Just now',
-            type: 'registration'
-          },
-          {
-            id: 2,
-            title: 'KYC Verification Complete',
-            description: `${formData.verificationType} verified successfully`,
-            time: 'Just now',
-            type: 'kyc'
-          },
-          {
-            id: 3,
-            title: 'Squad Virtual Account Created',
-            description: 'Ready to receive payments',
-            time: 'Just now',
-            type: 'account'
-          }
-        ]
-      }
-      
-      // Store user credentials (in real app, this would be handled by backend)
-      const userCredentials = {
-        id: memberId,
-        name: formData.fullName,
-        phone: formData.phone,
-        password: formData.password,
-        role: 'cluster_leader',
-        clusterId: `CLU-${Math.floor(Math.random() * 1000)}`,
-        clusterName: formData.groupName
-      }
-      
-      // Save to localStorage for demo
-      localStorage.setItem('kluster_user', JSON.stringify({
-        ...userCredentials,
-        isAuthenticated: true
-      }))
-      
-      setIsSubmitting(false)
-      
-      // Navigate to member profile with the new member data
-      navigate(`/member/${memberId}`, { 
-        state: { 
-          newMember: memberProfile,
-          isNewMember: true 
-        } 
-      })
-    }, 1500)
-  }
+  // In the handleSubmit function - update the navigation
+// In LeaderSignup.jsx - This would send data to backend
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  if (!agreeTerms) return
+  if (!validatePassword()) return
+  
+  setIsSubmitting(true)
 
+  try {
+    const response = await klusterAPI.signup({
+      full_name: formData.fullName,  // Note: backend might expect snake_case
+      phone: formData.phone,
+      email: formData.email,
+      password: formData.password,
+      group_name: formData.groupName,
+      group_type: formData.groupType,
+      member_count: formData.memberCount,
+      location: formData.location,
+      verification_id: formData.verificationId,
+      verification_type: formData.verificationType
+    })
+    
+    if (response.user) {
+      localStorage.setItem('kluster_user', JSON.stringify(response.user))
+      localStorage.setItem('kluster_token', response.token)
+      navigate('/dashboard/cluster')
+    }
+  } catch (error) {
+    console.error('Registration failed:', error)
+    alert('Registration failed. Please try again.')
+  } finally {
+    setIsSubmitting(false)
+  }
+}
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-light/10">
       <Navbar />

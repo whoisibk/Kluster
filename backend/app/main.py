@@ -11,17 +11,13 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Read allowed origins from environment. Defaults to * for dev and demo.
-# In production set: ALLOWED_ORIGINS=https://your-frontend.vercel.app
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
-allowed_origins = [o.strip() for o in _raw_origins.split(",")] if _raw_origins != "*" else ["*"]
-
+# CORS - Allow all origins for development (fix CORS errors)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],  # Allows all origins
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
@@ -32,3 +28,7 @@ app.include_router(matching_route, prefix="/matching", tags=["Matching"])
 app.include_router(financial_route, prefix="/financial", tags=["Financial"])
 app.include_router(sim_transfer_route, prefix="/sim-transfer", tags=["Sim Transfer"])
 app.include_router(job_seekers_route, prefix="/job-seekers", tags=["Job Seekers"])
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to Kluster API", "status": "healthy"}
