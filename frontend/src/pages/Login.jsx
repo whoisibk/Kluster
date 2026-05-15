@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-
+import klusterAPI from '../../services/api'
 const Login = () => {
   const navigate = useNavigate()
-  const [loginMethod, setLoginMethod] = useState('phone') // phone or id
+  const [loginMethod, setLoginMethod] = useState('email')
   const [formData, setFormData] = useState({
     identifier: '',
     password: '',
@@ -14,130 +14,160 @@ const Login = () => {
   const [showVerification, setShowVerification] = useState(false)
   const [error, setError] = useState('')
 
-  // Mock user database (would be backend in production)
-  const mockUsers = {
-    '08031234567': {
-      id: 'TRO-3892-ALPHA',
-      name: 'Tunde Adebayo',
-      role: 'cluster_leader',
-      password: '123456',
-      clusterId: 'CLU-001',
-      clusterName: 'Oba Akran Phone Repair Association'
-    },
-    '08059876543': {
-      id: 'MBR-12345-ACTIVE',
-      name: 'Chioma Okafor',
-      role: 'member',
-      password: '123456',
-      clusterId: 'CLU-001',
-      clusterName: 'Oba Akran Phone Repair Association'
-    },
-    '08051122334': {
-      id: 'MBR-67890-RISING',
-      name: 'John Okonkwo',
-      role: 'member',
-      password: '123456',
-      clusterId: 'CLU-003',
-      clusterName: 'Abuja Tailors Cooperative'
+  // Get all registered users from localStorage
+  const getRegisteredUsers = () => {
+    const users = []
+    // Check all localStorage keys that might contain user data
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key === 'kluster_user') {
+        try {
+          const user = JSON.parse(localStorage.getItem(key))
+          if (user && user.email) {
+            users.push(user)
+          }
+        } catch (e) {}
+      }
+    }
+    return users
+  }
+
+  // Mock existing users (for demo purposes)
+  const getMockUsers = () => {
+    return {
+      'tunde@kluster.com': {
+        id: 'TRO-3892-ALPHA',
+        name: 'Tunde Adebayo',
+        role: 'cluster_leader',
+        password: '123456',
+        clusterId: 'CLU-001',
+        clusterName: 'Oba Akran Phone Repair Association'
+      },
+      'chioma@kluster.com': {
+        id: 'MBR-12345-ACTIVE',
+        name: 'Chioma Okafor',
+        role: 'member',
+        password: '123456',
+        clusterId: 'CLU-001',
+        clusterName: 'Oba Akran Phone Repair Association'
+      },
+      'amina@kluster.com': {
+        id: 'MBR-67890-RISING',
+        name: 'Amina Bello',
+        role: 'job_seeker',
+        password: '123456',
+        clusterId: null,
+        clusterName: null
+      }
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
 
-    // Simulate API call
-    setTimeout(() => {
-      const user = mockUsers[formData.identifier]
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  setIsLoading(true)
+  setError('')
+
+  try {
+    const response = await klusterAPI.login(formData.identifier, formData.password)
+    
+    if (response.user) {
+      localStorage.setItem('kluster_user', JSON.stringify(response.user))
+      localStorage.setItem('kluster_token', response.token)
       
-      if (user && user.password === formData.password) {
-        // Store user session
-        localStorage.setItem('kluster_user', JSON.stringify({
-          id: user.id,
-          name: user.name,
-          role: user.role,
-          clusterId: user.clusterId,
-          clusterName: user.clusterName,
-          isAuthenticated: true
-        }))
-        
-        // Redirect based on role
-        if (user.role === 'cluster_leader') {
-          navigate('/dashboard/cluster')
-        } else {
-          navigate(`/member/${user.id}`)
-        }
+      if (response.user.role === 'cluster_leader') {
+        navigate('/dashboard/cluster')
+      } else if (response.user.role === 'job_seeker') {
+        navigate('/dashboard')
       } else {
-        setError('Invalid phone number/ID or password. Try: 08031234567 / 123456')
+        navigate(`/member/${response.user.id}`)
       }
-      setIsLoading(false)
-    }, 1000)
+    }
+  } catch (error) {
+    setError('Invalid email or password')
+  } finally {
+    setIsLoading(false)
   }
+}
 
   const handleSendVerificationCode = async () => {
     if (!formData.identifier) {
-      setError('Please enter your phone number')
+      setError('Please enter your email address')
       return
     }
-    // Simulate sending OTP
     alert(`Verification code sent to ${formData.identifier}`)
     setShowVerification(true)
   }
 
+  // Icons
+  const EmailIcon = () => (
+    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  )
+
+  const LockIcon = () => (
+    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+  )
+
+  const IdCardIcon = () => (
+    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-4 0h4" />
+    </svg>
+  )
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-light/10">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-teal-50/30">
       <Navbar />
       
-      <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Header */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center gap-2 bg-primary-deep/10 rounded-full px-4 py-1.5 mb-4">
+      <div className="max-w-md mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 bg-teal-100 rounded-full px-4 py-1.5 mb-4">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-600 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-600"></span>
             </span>
-            <span className="text-primary-deep text-xs font-semibold">WELCOME BACK</span>
+            <span className="text-teal-700 text-xs font-semibold">WELCOME BACK</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-secondary-slate mb-3">
-            Sign in to <span className="bg-gradient-to-r from-primary-deep to-primary bg-clip-text text-transparent">Kluster</span>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-3">
+            Sign in to <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">Kluster</span>
           </h1>
-          <p className="text-secondary-slate/60">
-            Access your economic identity and cluster insights
+          <p className="text-gray-500">
+            Access your economic identity and opportunities
           </p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-slide-up">
-          <div className="bg-gradient-to-r from-primary-deep to-primary px-6 py-4">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-teal-700 to-teal-600 px-6 py-4">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
               </svg>
-              Authentication Portal
+              Sign In Portal
             </h2>
-            <p className="text-primary-light text-sm mt-1">Cluster leaders & members sign in here</p>
+            <p className="text-teal-100 text-sm mt-1">Cluster leaders, members & workers</p>
           </div>
 
-          {/* Login Method Tabs */}
           <div className="flex border-b border-gray-200">
             <button
               type="button"
               onClick={() => {
-                setLoginMethod('phone')
+                setLoginMethod('email')
                 setError('')
                 setShowVerification(false)
               }}
               className={`flex-1 py-3 text-sm font-medium transition-all ${
-                loginMethod === 'phone'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-secondary-slate/60 hover:text-secondary-slate'
+                loginMethod === 'email'
+                  ? 'text-teal-600 border-b-2 border-teal-600'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              Phone Number
+              Email Address
             </button>
             <button
               type="button"
@@ -148,8 +178,8 @@ const Login = () => {
               }}
               className={`flex-1 py-3 text-sm font-medium transition-all ${
                 loginMethod === 'id'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-secondary-slate/60 hover:text-secondary-slate'
+                  ? 'text-teal-600 border-b-2 border-teal-600'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,42 +191,52 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {error && (
-              <div className="bg-danger/10 border border-danger/20 rounded-lg p-3">
-                <p className="text-danger text-sm">{error}</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-red-600 text-sm">{error}</p>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-secondary-slate mb-2">
-                {loginMethod === 'phone' ? 'Phone Number' : 'Member / Cluster ID'}
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {loginMethod === 'email' ? 'Email Address' : 'Member / Cluster ID'}
               </label>
-              <input
-                type={loginMethod === 'phone' ? 'tel' : 'text'}
-                value={formData.identifier}
-                onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-                placeholder={loginMethod === 'phone' ? '0803 123 4567' : 'TRO-3892-ALPHA'}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-                required
-              />
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                  {loginMethod === 'email' ? <EmailIcon /> : <IdCardIcon />}
+                </div>
+                <input
+                  type={loginMethod === 'email' ? 'email' : 'text'}
+                  value={formData.identifier}
+                  onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
+                  placeholder={loginMethod === 'email' ? 'you@example.com' : 'TRO-3892-ALPHA'}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                  required
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-secondary-slate mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Enter your password"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-                required
-              />
-              <div className="text-right mt-1">
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                  <LockIcon />
+                </div>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Enter your password"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                  required
+                />
+              </div>
+              <div className="text-right mt-2">
                 <button
                   type="button"
                   onClick={handleSendVerificationCode}
-                  className="text-xs text-primary hover:underline"
+                  className="text-xs text-teal-600 hover:text-teal-700 hover:underline"
                 >
                   Forgot password? Send OTP
                 </button>
@@ -205,7 +245,7 @@ const Login = () => {
 
             {showVerification && (
               <div className="animate-fade-in">
-                <label className="block text-sm font-medium text-secondary-slate mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Verification Code
                 </label>
                 <input
@@ -213,7 +253,7 @@ const Login = () => {
                   value={formData.verificationCode}
                   onChange={(e) => setFormData({ ...formData, verificationCode: e.target.value })}
                   placeholder="Enter 6-digit code"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
                 />
               </div>
             )}
@@ -221,7 +261,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-primary-deep to-primary hover:from-primary-deep/90 hover:to-primary/90 text-white font-semibold py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-teal-700 to-teal-600 hover:from-teal-800 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -246,32 +286,42 @@ const Login = () => {
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-secondary-slate/60">New to Kluster?</span>
+                <span className="px-2 bg-white text-gray-500">New to Kluster?</span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <Link
                 to="/signup"
-                className="text-center px-4 py-2 border border-primary/30 text-primary-deep rounded-lg font-medium hover:bg-primary/5 transition"
+                className="text-center px-4 py-2 border border-teal-300 text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition"
               >
                 Register as Leader
               </Link>
               <Link
                 to="/member-signup"
-                className="text-center px-4 py-2 border border-secondary-orange/30 text-secondary-orange rounded-lg font-medium hover:bg-secondary-orange/5 transition"
+                className="text-center px-4 py-2 border border-orange-300 text-orange-600 rounded-lg font-medium hover:bg-orange-50 transition"
               >
-                Join as Member
+                Activate Account
               </Link>
             </div>
 
-            {/* Demo credentials info */}
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs text-secondary-slate/60 text-center">
-                Demo Credentials:<br />
-                Leader: 08031234567 / 123456<br />
-                Member: 08059876543 / 123456
-              </p>
+            <div className="text-center">
+              <Link
+                to="/create-profile"
+                className="text-sm text-teal-600 hover:text-teal-700 hover:underline"
+              >
+                Looking for work? Create a worker profile →
+              </Link>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500 text-center mb-2">Demo Credentials:</p>
+              <div className="space-y-1 text-xs text-gray-600">
+                <p>📧 <span className="font-mono">tunde@kluster.com</span> / 123456 (Cluster Leader)</p>
+                <p>📧 <span className="font-mono">chioma@kluster.com</span> / 123456 (Member)</p>
+                <p>📧 <span className="font-mono">amina@kluster.com</span> / 123456 (Job Seeker)</p>
+                <p className="text-teal-600 mt-1">✨ After activating your account, use your custom email and password to sign in</p>
+              </div>
             </div>
           </form>
         </div>
