@@ -14,6 +14,8 @@ class JobSeeker(Base):
     last_name = Column(String, nullable=False)
     phone = Column(String, nullable=False)
 
+    bank_account_number = Column(String, nullable=True)
+
     skills = Column(ARRAY(String), nullable=False)
     language = Column(String, nullable=False)
     location = Column(String, nullable=False)
