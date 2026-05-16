@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import klusterAPI from '../../services/api'
+import klusterAPI from '../services/api'
 const Login = () => {
   const navigate = useNavigate()
   const [loginMethod, setLoginMethod] = useState('email')
@@ -14,15 +14,15 @@ const Login = () => {
   const [showVerification, setShowVerification] = useState(false)
   const [error, setError] = useState('')
 
-  // Get all registered users from localStorage
+  // Get all registered users from sessionStorage
   const getRegisteredUsers = () => {
     const users = []
-    // Check all localStorage keys that might contain user data
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
+    // Check all sessionStorage keys that might contain user data
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i)
       if (key === 'kluster_user') {
         try {
-          const user = JSON.parse(localStorage.getItem(key))
+          const user = JSON.parse(sessionStorage.getItem(key))
           if (user && user.email) {
             users.push(user)
           }
@@ -70,17 +70,28 @@ const handleSubmit = async (e) => {
 
   try {
     const response = await klusterAPI.login(formData.identifier, formData.password)
-    
-    if (response.user) {
-      localStorage.setItem('kluster_user', JSON.stringify(response.user))
-      localStorage.setItem('kluster_token', response.token)
-      
-      if (response.user.role === 'cluster_leader') {
+    sessionStorage.setItem('kluster_token', response.access_token)
+    const payload = JSON.parse(atob(response.access_token.split('.')[1]))
+    const meta = payload.user_metadata || {}
+    const fullName = `${meta.first_name || ''} ${meta.last_name || ''}`.trim() || formData.identifier
+
+    // Detect role: try cluster leader first, then member
+    try {
+      const member = await klusterAPI.getMyProfile()
+      if (member.role_in_cluster === 'leader') {
+        sessionStorage.setItem('kluster_user', JSON.stringify({ role: 'cluster_leader', email: formData.identifier, name: fullName }))
         navigate('/dashboard/cluster')
-      } else if (response.user.role === 'job_seeker') {
-        navigate('/dashboard')
       } else {
-        navigate(`/member/${response.user.id}`)
+        sessionStorage.setItem('kluster_user', JSON.stringify({ role: 'member', email: formData.identifier, name: fullName }))
+        navigate(`/member/${member.id}`)
+      }
+    } catch {
+      try {
+        await klusterAPI.getJobSeekerProfile()
+        sessionStorage.setItem('kluster_user', JSON.stringify({ role: 'job_seeker', email: formData.identifier, name: fullName }))
+        navigate('/dashboard/job-seeker')
+      } catch {
+        setError('Could not determine account type. Please contact support.')
       }
     }
   } catch (error) {
@@ -292,7 +303,7 @@ const handleSubmit = async (e) => {
 
             <div className="grid grid-cols-2 gap-3">
               <Link
-                to="/signup"
+                to="/leader-signup"
                 className="text-center px-4 py-2 border border-teal-300 text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition"
               >
                 Register as Leader
@@ -312,17 +323,7 @@ const handleSubmit = async (e) => {
               >
                 Looking for work? Create a worker profile →
               </Link>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 text-center mb-2">Demo Credentials:</p>
-              <div className="space-y-1 text-xs text-gray-600">
-                <p>📧 <span className="font-mono">tunde@kluster.com</span> / 123456 (Cluster Leader)</p>
-                <p>📧 <span className="font-mono">chioma@kluster.com</span> / 123456 (Member)</p>
-                <p>📧 <span className="font-mono">amina@kluster.com</span> / 123456 (Job Seeker)</p>
-                <p className="text-teal-600 mt-1">✨ After activating your account, use your custom email and password to sign in</p>
-              </div>
-            </div>
+            </div>  
           </form>
         </div>
       </div>

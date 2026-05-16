@@ -105,7 +105,7 @@ const Home = () => {
       {/* Simple Footer */}
       <footer className="bg-secondary-slate text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm opacity-80">
-          <p>© 2025 Kluster — Making Nigeria's Informal Economy Visible</p>
+          <p>© 2026 Team Hacktivity · Kluster Inc. — Making Nigeria's Informal Economy Visible</p>
           <p className="mt-2">Intelligent economic platform connecting informal traders, job seekers, and financial services</p>
         </div>
       </footer>

@@ -2,14 +2,21 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.database import Base, engine
 from app.routers import cluster_route, member_route, webhook_route, matching_route, financial_route, sim_transfer_route, job_seekers_route
 from app.routers.auth import router as auth_router
+import app.models  # noqa: F401 — ensures all models are registered before create_all
 
 app = FastAPI(
     title="Kluster",
     description="Intelligent economic platform for informal trade clusters",
     version="0.1.0",
 )
+
+
+@app.on_event("startup")
+async def startup():
+    Base.metadata.create_all(bind=engine)
 
 # Read allowed origins from environment. Defaults to * for dev and demo.
 # In production set: ALLOWED_ORIGINS=https://your-frontend.vercel.app

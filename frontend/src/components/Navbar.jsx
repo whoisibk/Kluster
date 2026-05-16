@@ -14,23 +14,10 @@ const Navbar = () => {
               <span className="text-white font-bold text-lg">K</span>
             </div>
             <span className="font-bold text-2xl tracking-tight text-secondary-slate">KLUSTER</span>
-            <span className="hidden sm:inline-block ml-2 text-[10px] font-semibold bg-gray-100 text-primary-deep px-2 py-0.5 rounded-full uppercase tracking-wide">
-              Econ Intel
-            </span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
-            {['Network', 'Intelligence'].map((item) => (
-              <a
-                key={item}
-                href="#"
-                className="text-secondary-slate/80 hover:text-primary-deep font-medium text-sm transition-colors duration-200"
-              >
-                {item}
-              </a>
-            ))}
-            
             {/* Login Button */}
             <Link
               to="/login"
@@ -80,16 +67,6 @@ const Navbar = () => {
         {/* Mobile menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-100 animate-fade-in">
-            {['Network', 'Intelligence'].map((item) => (
-              <a
-                key={item}
-                href="#"
-                className="block py-2 text-secondary-slate hover:text-primary-deep font-medium"
-              >
-                {item}
-              </a>
-            ))}
-            
             {/* Mobile Login */}
             <Link
               to="/login"

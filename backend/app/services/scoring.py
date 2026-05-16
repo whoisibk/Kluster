@@ -41,6 +41,8 @@ def _consistency_score(weekly_totals: list[float], max_pts: float) -> Tuple[floa
 
 def _volume_trend_score(current: float, previous: float, max_pts: float) -> Tuple[float, float]:
     """Returns (pts_earned, growth_rate)."""
+    if current == 0 and previous == 0:
+        return 0.0, 0.0
     if previous == 0:
         growth = 1.0 if current > 0 else 0.0
     else:
@@ -109,7 +111,9 @@ def compute_cluster_health_score(cluster_id: UUID, db: Session) -> Dict[str, Any
 
     # 5. Member Retention (15 pts)
     prev_active_ids = {t.member_id for t in prev_txns if t.member_id}
-    if not prev_active_ids:
+    if not prev_active_ids and not active_member_ids:
+        retention_pts = 0.0
+    elif not prev_active_ids:
         retention_pts = 10.0
     else:
         retained = len(active_member_ids & prev_active_ids)

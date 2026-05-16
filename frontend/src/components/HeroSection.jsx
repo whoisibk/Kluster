@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 const HeroSection = () => {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-white via-white to-primary-light/10 py-20 lg:py-28">
@@ -30,12 +32,12 @@ const HeroSection = () => {
 
         {/* CTA Buttons */}
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <button className="bg-primary hover:bg-primary-deep text-white px-8 py-3 rounded-full font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 group">
+          <Link to="/leader-signup" className="bg-primary hover:bg-primary-deep text-white px-8 py-3 rounded-full font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 group">
             <span>CREATE CLUSTER </span>
             <svg className="w-4 h-4 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
-          </button>
+          </Link>
           <button className="border-2 border-primary/30 text-primary-deep hover:bg-primary/5 px-8 py-3 rounded-full font-semibold transition-all flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />

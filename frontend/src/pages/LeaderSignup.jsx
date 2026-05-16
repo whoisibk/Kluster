@@ -70,31 +70,42 @@ const handleSubmit = async (e) => {
   e.preventDefault()
   if (!agreeTerms) return
   if (!validatePassword()) return
-  
+
   setIsSubmitting(true)
 
   try {
-    const response = await klusterAPI.signup({
-      full_name: formData.fullName,  // Note: backend might expect snake_case
-      phone: formData.phone,
+    const nameParts = formData.fullName.trim().split(' ')
+    const first_name = nameParts[0]
+    const last_name = nameParts.slice(1).join(' ') || first_name
+
+    // Step 1: create auth account
+    await klusterAPI.signup({
       email: formData.email,
       password: formData.password,
-      group_name: formData.groupName,
-      group_type: formData.groupType,
-      member_count: formData.memberCount,
-      location: formData.location,
-      verification_id: formData.verificationId,
-      verification_type: formData.verificationType
+      first_name,
+      last_name,
+      phone: formData.phone,
     })
-    
-    if (response.user) {
-      localStorage.setItem('kluster_user', JSON.stringify(response.user))
-      localStorage.setItem('kluster_token', response.token)
-      navigate('/dashboard/cluster')
-    }
+
+    // Step 2: login to get token
+    const loginRes = await klusterAPI.login(formData.email, formData.password)
+    sessionStorage.setItem('kluster_token', loginRes.access_token)
+
+    // Step 3: create cluster (token is now in sessionStorage, apiCall picks it up)
+    const cluster = await klusterAPI.createCluster({
+      name: formData.groupName,
+      type: formData.groupType,
+      location: formData.location,
+      description: '',
+      languages: [],
+    })
+
+    sessionStorage.removeItem('kluster_token')
+    sessionStorage.removeItem('kluster_user')
+    navigate('/login')
   } catch (error) {
     console.error('Registration failed:', error)
-    alert('Registration failed. Please try again.')
+    alert(`Registration failed: ${error.message}`)
   } finally {
     setIsSubmitting(false)
   }

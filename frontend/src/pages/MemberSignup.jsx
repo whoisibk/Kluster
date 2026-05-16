@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
-import klusterAPI from '../../services/api'
+import klusterAPI from '../services/api'
 
 // Simple SVG Icons
 const PhoneIcon = () => (
@@ -105,8 +105,8 @@ const handleSubmit = async (e) => {
     })
     
     if (response.success) {
-      localStorage.setItem('kluster_user', JSON.stringify(response.user))
-      localStorage.setItem('kluster_token', response.token)
+      sessionStorage.setItem('kluster_user', JSON.stringify(response.user))
+      sessionStorage.setItem('kluster_token', response.token)
       navigate('/dashboard/cluster', { state: { newCluster: true } })
     }
   } catch (error) {
@@ -147,26 +147,23 @@ const handleSubmit = async (e) => {
     setIsSearching(false)
   }
 }
-// Activate account
 const handleActivateAccount = async () => {
   if (!validatePassword()) return
 
   setIsActivating(true)
 
   try {
-    const response = await klusterAPI.memberActivate({
+    await klusterAPI.memberActivate({
       phone: foundProfile.phone,
       email: formData.email,
-      password: formData.password
+      password: formData.password,
     })
-    
-    if (response.user) {
-      localStorage.setItem('kluster_user', JSON.stringify(response.user))
-      localStorage.setItem('kluster_token', response.token)
-      navigate(`/member/${response.user.id}`)
-    }
+    // Account activated — send them to login
+    sessionStorage.removeItem('kluster_token')
+    sessionStorage.removeItem('kluster_user')
+    navigate('/login')
   } catch (error) {
-    setActivationError('Activation failed. Please try again.')
+    setError(error.message || 'Activation failed. Please try again.')
   } finally {
     setIsActivating(false)
   }
@@ -292,13 +289,13 @@ const handleActivateAccount = async () => {
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-full bg-teal-200 flex items-center justify-center">
                     <span className="text-xl font-semibold text-teal-700">
-                      {foundProfile.name.charAt(0)}
+                      {foundProfile.first_name?.charAt(0)}
                     </span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800 text-lg">{foundProfile.name}</h3>
-                    <p className="text-sm text-gray-600">{foundProfile.cluster}</p>
-                    <p className="text-xs text-gray-500 mt-1">{foundProfile.role} • {foundProfile.location}</p>
+                    <h3 className="font-semibold text-gray-800 text-lg">{foundProfile.first_name} {foundProfile.last_name}</h3>
+                    <p className="text-sm text-gray-600">{foundProfile.cluster_name}</p>
+                    <p className="text-xs text-gray-500 mt-1">{foundProfile.phone}</p>
                   </div>
                 </div>
               </div>

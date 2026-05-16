@@ -9,7 +9,7 @@ class MemberBase(BaseModel):
     last_name: str = Field(..., title="Last Name", description="Member's last name")
     phone: Optional[str] = Field(None, title="Phone Number", description="Nigerian format, e.g. 08011223344", pattern=r"^0\d{10}$")
     role_in_cluster: Optional[str] = Field("member", title="Role in Cluster", description="Role of the member within the cluster (e.g., leader, member)")
-    bank_account_number: Optional[str] = Field(None, title="Bank Account Number", description="GTBank account number for loan disbursement")
+    # bank_account_number: Optional[str] = Field(None, title="Bank Account Number", description="GTBank account number for loan disbursement")
     # job_seeker_id: Optional[UUID] = Field(None, title="Job Seeker ID", description="Reference to associated job seeker profile")
 
 
@@ -51,7 +51,7 @@ class MemberView(BaseModel):
     cluster_id: UUID = Field(..., title="Cluster ID")
     role_in_cluster: Optional[str] = Field(None, title="Role in Cluster")
     squad_virtual_account_id: Optional[str] = Field(None, title="Squad Virtual Account ID")
-    bank_account_number: Optional[str] = Field(None, title="Bank Account Number")
+    # bank_account_number: Optional[str] = Field(None, title="Bank Account Number")
     created_at: datetime = Field(..., title="Created At")
 
     class Config:

@@ -11,6 +11,8 @@ from app.schemas.job_seeker import JobSeekerSignupRequest, JobSeekerSignupRespon
 
 router = APIRouter()
 
+_http = httpx.AsyncClient(timeout=10.0)
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
@@ -62,29 +64,25 @@ async def signup(credentials: SignupRequest):
     After signing up, log in via POST /auth/login to get a Bearer token.
     """
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{SUPABASE_URL}/auth/v1/signup",
-                headers={
-                    "apikey": SUPABASE_ANON_KEY,
-                    "Content-Type": "application/json"
+        response = await _http.post(
+            f"{SUPABASE_URL}/auth/v1/signup",
+            headers={"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json"},
+            json={
+                "email": credentials.email,
+                "password": credentials.password,
+                "data": {
+                    "first_name": credentials.first_name,
+                    "last_name": credentials.last_name,
+                    "phone": credentials.phone,
                 },
-                json={
-                    "email": credentials.email,
-                    "password": credentials.password,
-                    "data": {
-                        "first_name": credentials.first_name,
-                        "last_name": credentials.last_name,
-                        "phone": credentials.phone
-                    }
-                }
-            )
+            },
+        )
 
-            if response.status_code not in [200, 201]:
-                error_detail = (response.json() if response.text else {}).get("error_description", response.text or "Unknown error")
-                raise HTTPException(status_code=response.status_code, detail=error_detail)
+        if response.status_code not in [200, 201]:
+            error_detail = (response.json() if response.text else {}).get("error_description", response.text or "Unknown error")
+            raise HTTPException(status_code=response.status_code, detail=error_detail)
 
-            return SignupResponse(message="Signup successful. You can now log in.", email=credentials.email)
+        return SignupResponse(message="Signup successful. You can now log in.", email=credentials.email)
 
     except HTTPException:
         raise
@@ -101,8 +99,7 @@ async def login(credentials: LoginRequest):
     Both cluster leaders and members use this same endpoint to log in.
     """
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
+        response = await _http.post(
                 f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
                 headers={
                     "apikey": SUPABASE_ANON_KEY,
@@ -115,7 +112,10 @@ async def login(credentials: LoginRequest):
             )
 
         if response.status_code != 200:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+            supabase_error = response.json() if response.text else {}
+            print(f"[login] Supabase {response.status_code}: {supabase_error}")
+            detail = supabase_error.get("error_description") or supabase_error.get("msg") or "Invalid email or password"
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
 
         data = response.json()
         return LoginResponse(access_token=data["access_token"], token_type="bearer")
@@ -158,8 +158,7 @@ async def member_activate(credentials: MemberActivateRequest, db: Session = Depe
         )
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
+        response = await _http.post(
                 f"{SUPABASE_URL}/auth/v1/signup",
                 headers={
                     "apikey": SUPABASE_ANON_KEY,
@@ -223,8 +222,7 @@ async def job_seeker_signup(data: JobSeekerSignupRequest, db: Session = Depends(
         )
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
+        response = await _http.post(
                 f"{SUPABASE_URL}/auth/v1/signup",
                 headers={
                     "apikey": SUPABASE_ANON_KEY,

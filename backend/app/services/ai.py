@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from typing import Any, Dict, List, Optional
@@ -6,6 +7,17 @@ from google import genai
 
 _client: Optional[genai.Client] = None
 _MODEL = "gemini-2.5-flash"
+
+# In-memory cache: key → generated text. Survives for the process lifetime.
+# Key is a hash of the inputs so the cache invalidates automatically when the
+# underlying score or transaction data changes.
+_profile_cache: Dict[str, str] = {}
+_match_cache: Dict[str, str] = {}
+
+
+def _cache_key(*args) -> str:
+    payload = json.dumps(args, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
 def _get_client() -> Optional[genai.Client]:
@@ -32,6 +44,10 @@ def generate_economic_profile(
     returns a narrative a bank or investor could use to understand this person's
     economic life. Falls back to a template if GEMINI_API_KEY is not set.
     """
+    cache_key = _cache_key(first_name, last_name, cluster_name, score_data, transaction_summary)
+    if cache_key in _profile_cache:
+        return _profile_cache[cache_key]
+
     client = _get_client()
     if client is None:
         return _fallback_profile(first_name, last_name, cluster_name, score_data, transaction_summary)
@@ -54,8 +70,13 @@ Last 30 days: ₦{volume:,.0f} in transactions across {tx_count} payments from {
 Revenue growth: {growth_rate*100:+.1f}% vs previous period
 Score breakdown: {breakdown}"""
 
-    response = client.models.generate_content(model=_MODEL, contents=prompt)
-    return response.text.strip()
+    try:
+        response = client.models.generate_content(model=_MODEL, contents=prompt)
+        text = response.text.strip()
+        _profile_cache[cache_key] = text
+        return text
+    except Exception:
+        return _fallback_profile(first_name, last_name, cluster_name, score_data, transaction_summary)
 
 
 def generate_matching_explanation(
@@ -72,6 +93,10 @@ def generate_matching_explanation(
     Generates a one-sentence explanation of why a job seeker matches a cluster's
     detected labor demand. Falls back to a template if GEMINI_API_KEY is not set.
     """
+    cache_key = _cache_key(job_seeker_name, job_seeker_skills, cluster_name, signal_type, round(signal_strength, 2), recommended_skills)
+    if cache_key in _match_cache:
+        return _match_cache[cache_key]
+
     client = _get_client()
     if client is None:
         return _fallback_match_explanation(job_seeker_name, cluster_name, signal_type)
@@ -83,8 +108,13 @@ Cluster: {cluster_name} | Location: {cluster_location}
 Demand signal: {signal_type} (strength: {signal_strength:.0%})
 Cluster needs: {', '.join(recommended_skills)}"""
 
-    response = client.models.generate_content(model=_MODEL, contents=prompt)
-    return response.text.strip()
+    try:
+        response = client.models.generate_content(model=_MODEL, contents=prompt)
+        text = response.text.strip()
+        _match_cache[cache_key] = text
+        return text
+    except Exception:
+        return _fallback_match_explanation(job_seeker_name, cluster_name, signal_type)
 
 
 def infer_required_skills(
@@ -119,21 +149,20 @@ Signal: {signal_label}
 Last 30 days: ₦{recent_volume:,.0f} across {transaction_count} transactions
 Growth: {growth_rate*100:+.1f}%"""
 
-    response = client.models.generate_content(model=_MODEL, contents=prompt)
-    raw = response.text.strip()
-
-    # Strip markdown code fences if Gemini wraps the JSON
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
-
     try:
+        response = client.models.generate_content(model=_MODEL, contents=prompt)
+        raw = response.text.strip()
+
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+
         skills = json.loads(raw)
         if isinstance(skills, list):
             return [str(s) for s in skills[:5]]
-    except (json.JSONDecodeError, ValueError):
+    except Exception:
         pass
 
     return []

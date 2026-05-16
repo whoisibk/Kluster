@@ -158,8 +158,11 @@ const CreateJobProfile = () => {
   
   const [formData, setFormData] = useState({
     fullName: '',
+    email: '',
+    password: '',
     phoneNumber: '',
     location: '',
+    language: '',
     workTypes: [],
     skillLevel: '',
     experience: '',
@@ -227,29 +230,34 @@ const CreateJobProfile = () => {
 
 const handleSubmit = async () => {
   setIsSubmitting(true)
-  
+
+  const nameParts = formData.fullName.trim().split(' ')
+  const first_name = nameParts[0]
+  const last_name = nameParts.slice(1).join(' ') || first_name
+
+  const bioParts = []
+  if (formData.workDescription) bioParts.push(formData.workDescription)
+  if (formData.skillLevel) bioParts.push(`Skill level: ${formData.skillLevel}`)
+  if (formData.experience) bioParts.push(`Experience: ${formData.experience}`)
+  if (formData.workPreference) bioParts.push(`Looking for: ${formData.workPreference}`)
+
   try {
-    const response = await klusterAPI.createWorkerProfile({
-      fullName: formData.fullName,
-      phoneNumber: formData.phoneNumber,
+    await klusterAPI.jobSeekerSignup({
+      email: formData.email,
+      password: formData.password,
+      first_name,
+      last_name,
+      phone: formData.phoneNumber,
+      skills: formData.workTypes,
+      language: formData.language || 'English',
       location: formData.location,
-      workTypes: formData.workTypes,
-      skillLevel: formData.skillLevel,
-      experience: formData.experience,
-      workedWithCustomers: formData.workedWithCustomers,
-      ownsTools: formData.ownsTools,
-      hasMentor: formData.hasMentor,
-      workPreference: formData.workPreference,
-      workDescription: formData.workDescription
+      bio: bioParts.join('. ') || null,
     })
-    
-    if (response.success) {
-      localStorage.setItem('kluster_user', JSON.stringify(response.user))
-      localStorage.setItem('kluster_token', response.token)
-      navigate('/dashboard', { state: { newProfile: true } })
-    }
+
+    alert('Profile created! You can now sign in.')
+    navigate('/login')
   } catch (error) {
-    alert('Failed to create profile. Please try again.')
+    alert(`Failed to create profile: ${error.message}`)
   } finally {
     setIsSubmitting(false)
   }
@@ -257,7 +265,7 @@ const handleSubmit = async () => {
   const canProceed = () => {
     switch(currentStep) {
       case 1:
-        return formData.fullName && formData.phoneNumber && formData.location
+        return formData.fullName && formData.email && formData.password && formData.phoneNumber && formData.location
       case 2:
         return formData.workTypes.length > 0
       case 3:
@@ -360,13 +368,9 @@ const handleSubmit = async () => {
             {currentStep === 1 && (
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    What's your full name?
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Full name</label>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                      <UserIcon />
-                    </div>
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2"><UserIcon /></div>
                     <input
                       type="text"
                       value={formData.fullName}
@@ -376,33 +380,47 @@ const handleSubmit = async () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone number
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-base"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Choose a secure password"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-base"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone number</label>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                      <PhoneIcon />
-                    </div>
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2"><PhoneIcon /></div>
                     <input
                       type="tel"
                       value={formData.phoneNumber}
                       onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                      placeholder="0803 123 4567"
+                      placeholder="08031234567"
                       className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-base"
                     />
                   </div>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Where are you based?
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Where are you based?</label>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                      <LocationIcon />
-                    </div>
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2"><LocationIcon /></div>
                     <input
                       type="text"
                       value={formData.location}
@@ -411,6 +429,22 @@ const handleSubmit = async () => {
                       className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-base"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Primary language</label>
+                  <select
+                    value={formData.language}
+                    onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-base bg-white"
+                  >
+                    <option value="">Select language</option>
+                    <option value="English">English</option>
+                    <option value="Yoruba">Yoruba</option>
+                    <option value="Igbo">Igbo</option>
+                    <option value="Hausa">Hausa</option>
+                    <option value="Pidgin">Pidgin</option>
+                  </select>
                 </div>
               </div>
             )}
@@ -672,7 +706,6 @@ const handleSubmit = async () => {
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                       Creating Profile...
-                      navigate('/dashboard/job-seeker')
                     </>
                   ) : (
                     <>

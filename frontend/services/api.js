@@ -1,7 +1,8 @@
-const API_BASE_URL = 'https://kluster-production-159b.up.railway.app'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://kluster-production-159b.up.railway.app'
+console.log('[API] base URL:', API_BASE_URL)
 
 const apiCall = async (endpoint, options = {}) => {
-  const token = localStorage.getItem('kluster_token')
+  const token = sessionStorage.getItem('kluster_token')
   
   const config = {
     headers: {
@@ -11,24 +12,30 @@ const apiCall = async (endpoint, options = {}) => {
     ...options
   }
   
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
-    if (!response.ok) throw new Error(`API Error: ${response.status}`)
-    return await response.json()
-  } catch (error) {
-    console.error('API Error:', error)
-    throw error
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    const detail = body.detail || JSON.stringify(body) || response.statusText
+    const err = new Error(detail)
+    err.status = response.status
+    throw err
   }
+  return await response.json()
 }
 
 export const klusterAPI = {
   // Auth
+  signup: (data) => apiCall('/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+
   login: (email, password) => apiCall('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password })
   }),
-  
-  registerCluster: (data) => apiCall('/clusters/register', {
+
+  registerCluster: (data) => apiCall('/clusters/create', {
     method: 'POST',
     body: JSON.stringify(data)
   }),

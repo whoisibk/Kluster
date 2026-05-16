@@ -1,7 +1,7 @@
-const API_BASE_URL = 'https://kluster-production-159b.up.railway.app'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 const apiCall = async (endpoint, options = {}) => {
-  const token = localStorage.getItem('kluster_token')
+  const token = sessionStorage.getItem('kluster_token')
   
   const config = {
     headers: {
@@ -11,19 +11,16 @@ const apiCall = async (endpoint, options = {}) => {
     ...options
   }
   
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      throw new Error(error.detail || `API Error: ${response.status}`)
-    }
-    
-    return await response.json()
-  } catch (error) {
-    console.error('API Error:', error)
-    throw error
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    const err = new Error(body.detail || `API Error: ${response.status}`)
+    err.status = response.status
+    throw err
   }
+
+  return await response.json()
 }
 
 export const klusterAPI = {
@@ -87,17 +84,25 @@ export const klusterAPI = {
   
   // Matching endpoints
   getOpportunities: () => apiCall('/matching/opportunities'),
-  
-  // Financial endpoints
-  prequalify: (data) => apiCall('/financial/prequalify', {
+
+  expressInterest: (clusterId, signalType) => apiCall('/matching/express-interest', {
     method: 'POST',
-    body: JSON.stringify(data)
+    body: JSON.stringify({ cluster_id: clusterId, signal_type: signalType }),
   }),
-  
+
+  // Cluster — interested workers (leader only)
+  getInterestedWorkers: () => apiCall('/clusters/interested-workers'),
+
+  // Financial endpoints
+  prequalify: () => apiCall('/financial/prequalify', { method: 'POST' }),
+
   disburse: (data) => apiCall('/financial/disburse', {
     method: 'POST',
     body: JSON.stringify(data)
   }),
+
+  // Member savings
+  getMySavings: () => apiCall('/members/me/savings'),
   
   // Sim Transfer (for testing)
   simulatePayment: (data) => apiCall('/sim-transfer/', {

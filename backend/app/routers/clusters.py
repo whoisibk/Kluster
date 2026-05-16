@@ -10,6 +10,8 @@ from app.schemas.score import ScoreView
 from app.schemas.transaction import TransactionView
 from app.database import get_db
 from app.models import Cluster, Member, Transaction
+from app.models.interest_expression import InterestExpression
+from app.models.job_seeker import JobSeeker
 from app.services.auth import get_current_user, get_current_user_profile
 from app.services.scoring import compute_cluster_health_score
 from app.services.demand import detect_demand_signals
@@ -199,19 +201,12 @@ def get_cluster_demand(
     current_user_id: UUID = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Runs demand signal detection on the cluster's recent transaction data.
-
-    Signal types:
-    - rapid_growth: volume grew >40% in the last 14 days vs the prior 14 days
-    - new_customer_influx: unique payers grew >30% in the same window
-    - high_activity: 50+ credit transactions in 30 days
-
-    Recommended skills are inferred by Gemini based on the cluster's name, type,
-    and transaction data. Falls back to a keyword map if no API key is set.
-    Only the cluster leader can call this endpoint.
-    """
-    _, cluster = _require_leader(current_user_id, db)
+    member = db.query(Member).filter(Member.auth_user_id == current_user_id).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Member profile not found.")
+    cluster = db.query(Cluster).filter(Cluster.id == member.cluster_id).first()
+    if not cluster:
+        raise HTTPException(status_code=404, detail="Cluster not found.")
     signals = detect_demand_signals(cluster.id, db)
     return {
         "cluster_id": cluster.id,
@@ -219,6 +214,41 @@ def get_cluster_demand(
         "signals_detected": len(signals),
         "signals": signals,
     }
+
+
+@router.get("/interested-workers", description="Get job seekers who expressed interest in this cluster")
+def get_interested_workers(
+    current_user_id: UUID = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    member = db.query(Member).filter(Member.auth_user_id == current_user_id).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Member profile not found.")
+    cluster = db.query(Cluster).filter(Cluster.id == member.cluster_id).first()
+    if not cluster:
+        raise HTTPException(status_code=404, detail="Cluster not found.")
+
+    interests = db.query(InterestExpression).filter(
+        InterestExpression.cluster_id == cluster.id
+    ).order_by(InterestExpression.created_at.desc()).all()
+
+    workers = []
+    for interest in interests:
+        js = db.query(JobSeeker).filter(JobSeeker.id == interest.job_seeker_id).first()
+        if js:
+            workers.append({
+                "interest_id": str(interest.id),
+                "job_seeker_id": str(js.id),
+                "name": f"{js.first_name} {js.last_name}",
+                "phone": js.phone,
+                "skills": js.skills or [],
+                "location": js.location,
+                "bio": js.bio,
+                "signal_type": interest.signal_type,
+                "expressed_at": interest.created_at,
+            })
+
+    return {"cluster_id": str(cluster.id), "total": len(workers), "workers": workers}
 
 
 @router.get("/transactions", response_model=List[TransactionView], description="Get recent transactions for the cluster")

@@ -102,6 +102,40 @@ def get_my_score(
     return compute_member_activity_score(member.id, db)
 
 
+@router.get("/me/savings", description="Get savings summary derived from transaction history")
+def get_savings(
+    current_user_id: UUID = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    member = _get_member(current_user_id, db)
+
+    month_start = datetime.utcnow() - timedelta(days=30)
+
+    monthly_txns = db.query(Transaction).filter(
+        Transaction.member_id == member.id,
+        Transaction.transaction_type == "credit",
+        Transaction.timestamp >= month_start,
+    ).all()
+
+    all_txns = db.query(Transaction).filter(
+        Transaction.member_id == member.id,
+        Transaction.transaction_type == "credit",
+    ).all()
+
+    monthly_volume = float(sum(t.amount for t in monthly_txns))
+    total_volume = float(sum(t.amount for t in all_txns))
+    rate = 0.10
+
+    return {
+        "monthly_volume": monthly_volume,
+        "total_volume": total_volume,
+        "monthly_savings": round(monthly_volume * rate, 2),
+        "total_savings": round(total_volume * rate, 2),
+        "savings_rate": rate,
+        "transaction_count": len(all_txns),
+    }
+
+
 @router.get("/me/profile", response_model=EconomicProfileView, description="Get your AI-generated economic profile")
 def get_my_economic_profile(
     current_user_id: UUID = Depends(get_current_user),

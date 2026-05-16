@@ -1,15 +1,23 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from typing import Optional
 from uuid import UUID
 
 from app.database import get_db
 from app.models import Cluster, JobSeeker
+from app.models.interest_expression import InterestExpression
 from app.schemas.matching import OpportunitiesResponse
 from app.services import ai as ai_service
 from app.services.auth import get_current_user
 from app.services.demand import detect_demand_signals
 
 router = APIRouter()
+
+
+class ExpressInterestRequest(BaseModel):
+    cluster_id: UUID
+    signal_type: Optional[str] = None
 
 
 @router.get("/opportunities", response_model=OpportunitiesResponse, description="Get demand-matched cluster opportunities for the logged-in job seeker")
@@ -91,3 +99,32 @@ def get_opportunities(
         "total_matches": len(results),
         "opportunities": results,
     }
+
+
+@router.post("/express-interest", status_code=201, description="Express interest in a cluster opportunity")
+def express_interest(
+    data: ExpressInterestRequest,
+    current_user_id: UUID = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    job_seeker = db.query(JobSeeker).filter(JobSeeker.auth_user_id == current_user_id).first()
+    if not job_seeker:
+        raise HTTPException(status_code=404, detail="Job seeker profile not found.")
+
+    existing = db.query(InterestExpression).filter(
+        InterestExpression.job_seeker_id == job_seeker.id,
+        InterestExpression.cluster_id == data.cluster_id,
+    ).first()
+
+    if existing:
+        return {"message": "Already expressed interest", "id": str(existing.id), "already_existed": True}
+
+    interest = InterestExpression(
+        job_seeker_id=job_seeker.id,
+        cluster_id=data.cluster_id,
+        signal_type=data.signal_type,
+    )
+    db.add(interest)
+    db.commit()
+    db.refresh(interest)
+    return {"message": "Interest expressed", "id": str(interest.id), "already_existed": False}

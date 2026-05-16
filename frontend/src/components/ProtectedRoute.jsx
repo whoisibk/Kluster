@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom'
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-  const storedUser = localStorage.getItem('kluster_user')
+  const storedUser = sessionStorage.getItem('kluster_user')
   
   if (!storedUser) {
     return <Navigate to="/login" replace />

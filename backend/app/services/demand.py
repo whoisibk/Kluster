@@ -50,7 +50,7 @@ _DEFAULT_SKILLS = ["general assistant", "delivery worker", "sales support", "adm
 
 # Clusters with more than this many credit transactions in 30 days are considered
 # sustainably busy and get a high_activity signal.
-_HIGH_ACTIVITY_THRESHOLD = 50
+_HIGH_ACTIVITY_THRESHOLD = 5
 
 
 def _skills_for_cluster(cluster_type: str, cluster_name: str) -> List[str]:
@@ -117,7 +117,7 @@ def detect_demand_signals(cluster_id: UUID, db: Session) -> List[Dict[str, Any]]
     # Signal 1 â€” rapid volume growth in last 14 days
     if prev_volume > 0:
         volume_growth = (recent_volume - prev_volume) / prev_volume
-        if volume_growth >= 0.4:
+        if volume_growth >= 0.05:
             strength = min(volume_growth / 2, 1.0)
             skills = _resolve_skills(cluster, "rapid_growth", recent_volume, volume_growth, len(recent_txns), fallback_skills)
             signal = _save_signal(cluster_id, "rapid_growth", strength, skills, db)
@@ -126,7 +126,7 @@ def detect_demand_signals(cluster_id: UUID, db: Session) -> List[Dict[str, Any]]
     # Signal 2 â€” surge in new customers
     if prev_senders > 0:
         sender_growth = (recent_senders - prev_senders) / prev_senders
-        if sender_growth >= 0.3:
+        if sender_growth >= 0.1:
             strength = min(sender_growth / 1.5, 1.0)
             skills = _resolve_skills(cluster, "new_customer_influx", recent_volume, sender_growth, len(recent_txns), fallback_skills)
             signal = _save_signal(cluster_id, "new_customer_influx", strength, skills[:3], db)

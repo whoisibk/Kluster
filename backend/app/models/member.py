@@ -18,7 +18,7 @@ class Member(Base):
     cluster_id = Column(UUID(as_uuid=True), ForeignKey("clusters.id", ondelete="CASCADE"), index=True, nullable=False)
     role_in_cluster = Column(String, nullable=True, default="member")
 
-    bank_account_number = Column(String, nullable=True)
+    # bank_account_number = Column(String, nullable=True)
 
     # account id to be created after member creation
     squad_virtual_account_id = Column(String, nullable=True)
