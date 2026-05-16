@@ -85,14 +85,6 @@ export const klusterAPI = {
   // Matching endpoints
   getOpportunities: () => apiCall('/matching/opportunities'),
 
-  expressInterest: (clusterId, signalType) => apiCall('/matching/express-interest', {
-    method: 'POST',
-    body: JSON.stringify({ cluster_id: clusterId, signal_type: signalType }),
-  }),
-
-  // Cluster — interested workers (leader only)
-  getInterestedWorkers: () => apiCall('/clusters/interested-workers'),
-
   // Financial endpoints
   prequalify: () => apiCall('/financial/prequalify', { method: 'POST' }),
 
@@ -101,9 +93,6 @@ export const klusterAPI = {
     body: JSON.stringify(data)
   }),
 
-  // Member savings
-  getMySavings: () => apiCall('/members/me/savings'),
-  
   // Sim Transfer (for testing)
   simulatePayment: (data) => apiCall('/sim-transfer/', {
     method: 'POST',
