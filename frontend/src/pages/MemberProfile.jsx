@@ -75,9 +75,7 @@ const MemberProfile = () => {
         })
         .catch(() => {})
 
-      klusterAPI.getMySavings().then(setSavings).catch(() => {})
       klusterAPI.prequalify().then(setLoanEligibility).catch(() => {})
-      klusterAPI.getInterestedWorkers().then(data => setInterestedWorkers(data?.workers ?? [])).catch(() => {})
     } catch (error) {
       console.error('Failed to load member:', error)
       setLoading(false)
