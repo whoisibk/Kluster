@@ -18,7 +18,7 @@ def _decode_token(token: str) -> dict:
             token,
             "",
             algorithms=["HS256", "ES256", "RS256"],
-            options={"verify_signature": False, "verify_aud": False},
+            options={"verify_signature": False, "verify_aud": False, "verify_exp": False},
         )
     except Exception as e:
         raise HTTPException(status_code=401, detail="Unauthorized")

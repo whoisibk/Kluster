@@ -6,6 +6,8 @@ import httpx
 
 SQUAD_BASE_URL = "https://sandbox-api-d.squadco.com"
 
+_http = httpx.AsyncClient(timeout=5.0)
+
 
 def _api_key() -> str:
     return os.getenv("SQUAD_API_KEY", "")
@@ -52,13 +54,11 @@ async def create_virtual_account(
         "beneficiary_account": os.getenv("SQUAD_BENEFICIARY_ACCOUNT", ""),
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{SQUAD_BASE_URL}/virtual-account/",
-            headers=_headers(),
-            json=payload,
-            timeout=15.0,
-        )
+    response = await _http.post(
+        f"{SQUAD_BASE_URL}/virtual-account/",
+        headers=_headers(),
+        json=payload,
+    )
 
     if response.status_code in (200, 201):
         data = response.json().get("data", {})
@@ -99,13 +99,11 @@ async def disburse_loan(
         "currency_id": "NGN",
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{SQUAD_BASE_URL}/payout/transfer",
-            headers=_headers(),
-            json=payload,
-            timeout=15.0,
-        )
+    response = await _http.post(
+        f"{SQUAD_BASE_URL}/payout/transfer",
+        headers=_headers(),
+        json=payload,
+    )
 
     if response.status_code in (200, 201):
         data = response.json().get("data", {})

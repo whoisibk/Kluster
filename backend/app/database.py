@@ -5,9 +5,17 @@ import os
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+# Get DATABASE_URL from environment, or use SQLite as fallback for local dev
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./kluster_local.db")
 
-engine = create_engine(DATABASE_URL)
+# SQLite needs special settings
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
