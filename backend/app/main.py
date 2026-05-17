@@ -18,17 +18,14 @@ app = FastAPI(
 async def startup():
     Base.metadata.create_all(bind=engine)
 
-# Read allowed origins from environment. Defaults to * for dev and demo.
-# In production set: ALLOWED_ORIGINS=https://your-frontend.vercel.app
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
-allowed_origins = [o.strip() for o in _raw_origins.split(",")] if _raw_origins != "*" else ["*"]
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=allowed_origins != ["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # allow_credentials=allowed_origins != ["*"],
+    # allow_methods=["*"],
+    # allow_headers=["*"],
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
