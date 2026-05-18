@@ -18,14 +18,15 @@ app = FastAPI(
 async def startup():
     Base.metadata.create_all(bind=engine)
 
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "*")
+allowed_origins = [o.strip() for o in allowed_origins_raw.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    # allow_credentials=allowed_origins != ["*"],
-    # allow_methods=["*"],
-    # allow_headers=["*"],
+    allow_credentials=allowed_origins != ["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
